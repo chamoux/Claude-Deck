@@ -1,0 +1,11 @@
+[package]
+name = "deck-proto"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+deck-core.workspace = true
+serde.workspace = true
+serde_json = { workspace = true, features = ["preserve_order"] }

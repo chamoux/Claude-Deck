@@ -1,0 +1,10 @@
+[package]
+name = "pty-claude"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+deck-host = { path = "../../crates/deck-host" }
+
+[workspace]

@@ -1,0 +1,24 @@
+[workspace]
+resolver = "2"
+members = ["crates/deck-core", "crates/deck-proto", "crates/deck-host", "app/src-tauri"]
+
+[workspace.package]
+version = "0.2.1"
+edition = "2021"
+publish = false
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+thiserror = "2"
+tempfile = "3"
+deck-core = { path = "crates/deck-core" }
+deck-proto = { path = "crates/deck-proto" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+opt-level = 3
+panic = "unwind"

@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+/* Design tokens. See app/design/MASTER.md for how to use them. */
+@theme {
+  --font-sans: "IBM Plex Sans Variable", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "Cascadia Mono", Consolas, monospace;
+
+  /* Surfaces, from back to front */
+  --color-deck-bg: #111318;
+  --color-deck-sidebar: #161920;
+  --color-deck-panel: #1a1d25;
+  --color-deck-term: #13151a;
+  --color-deck-elevated: #1f232c;
+  --color-deck-hover: #232835;
+  --color-deck-border: #262a34;
+  --color-deck-border-strong: #343a47;
+
+  /* Text */
+  --color-deck-text: #e6e8ee;
+  --color-deck-muted: #a9afbd;
+  --color-deck-faint: #7c8394;
+
+  /* Accent and selection */
+  --color-deck-accent: #5b7cfa;
+  --color-deck-accent-hover: #7590fb;
+  --color-deck-active: #5b7cfa24;
+  --color-deck-danger: #ff6b6b;
+
+  /* Session states */
+  --color-dot-working: #40c057;
+  --color-dot-idle: #4dabf7;
+  --color-dot-needs: #fab005;
+  --color-dot-asleep: #8a90a0;
+  --color-needs-soft: #fab0051f;
+
+  /* Changes badges */
+  --color-badge-c-fg: #8ce99a;
+  --color-badge-c-bg: #40c05733;
+  --color-badge-m-fg: #ffc078;
+  --color-badge-m-bg: #f59f0033;
+  --color-badge-d-fg: #ffa8a8;
+  --color-badge-d-bg: #fa525233;
+  --color-badge-r-fg: #a5d8ff;
+  --color-badge-r-bg: #74c0fc33;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-deck-bg);
+  color: var(--color-deck-text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  user-select: none; /* desktop app: no accidental text selection in chrome UI */
+}
+
+/* Thin, quiet scrollbars for the dark UI */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-deck-border-strong) transparent;
+}

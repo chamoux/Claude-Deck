@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "SessionStart":     [{ "hooks": [{ "type": "command", "command": "powershell -NoProfile -File C:/Users/Chamoux/Desktop/claude-deck/spike/log-hook.ps1" }] }],
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "powershell -NoProfile -File C:/Users/Chamoux/Desktop/claude-deck/spike/log-hook.ps1" }] }],
+    "PreToolUse":       [{ "matcher": "*", "hooks": [{ "type": "command", "command": "powershell -NoProfile -File C:/Users/Chamoux/Desktop/claude-deck/spike/log-hook.ps1" }] }],
+    "PostToolUse":      [{ "matcher": "*", "hooks": [{ "type": "command", "command": "powershell -NoProfile -File C:/Users/Chamoux/Desktop/claude-deck/spike/log-hook.ps1" }] }],
+    "Notification":     [{ "hooks": [{ "type": "command", "command": "powershell -NoProfile -File C:/Users/Chamoux/Desktop/claude-deck/spike/log-hook.ps1" }] }],
+    "Stop":             [{ "hooks": [{ "type": "command", "command": "powershell -NoProfile -File C:/Users/Chamoux/Desktop/claude-deck/spike/log-hook.ps1" }] }],
+    "SessionEnd":       [{ "hooks": [{ "type": "command", "command": "powershell -NoProfile -File C:/Users/Chamoux/Desktop/claude-deck/spike/log-hook.ps1" }] }]
+  }
+}

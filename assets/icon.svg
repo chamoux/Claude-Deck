@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Claude Deck icon, option B "session dots": a terminal with the sidebar's
+       status dots (working, idle, asleep) and a prompt. Source for all icon sizes. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2a2f5c"/>
+      <stop offset="1" stop-color="#10132a"/>
+    </linearGradient>
+  </defs>
+  <rect x="48" y="48" width="928" height="928" rx="208" fill="url(#bg)"/>
+  <rect x="164" y="206" width="696" height="612" rx="88" fill="#f5f6ff"/>
+  <path d="M252 206 H392 V818 H252 A88 88 0 0 1 164 730 V294 A88 88 0 0 1 252 206 Z" fill="#dfe3ff"/>
+  <circle cx="278" cy="372" r="46" fill="#40c057"/>
+  <circle cx="278" cy="512" r="46" fill="#4dabf7"/>
+  <circle cx="278" cy="652" r="38" fill="none" stroke="#8f96ad" stroke-width="18"/>
+  <polyline points="480,418 584,512 480,606" fill="none" stroke="#ff7a59" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="626" y="578" width="150" height="56" rx="28" fill="#2a2f5c"/>
+</svg>

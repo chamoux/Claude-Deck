@@ -1,0 +1,33 @@
+# brainstorm mockups
+.superpowers/
+
+# Rust
+target/
+
+# Node / UI
+node_modules/
+dist/
+package-lock.json
+yarn.lock
+
+# env files
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+
+# spike hook log
+spike/hooks.log
+
+# spike lockfile/target
+spike/pty-claude/Cargo.lock
+spike/pty-claude/target/
+
+# app (Tauri + Vue)
+app/node_modules/
+app/dist/
+app/src-tauri/target/
+app/src-tauri/gen/
+app/src-tauri/binaries/
