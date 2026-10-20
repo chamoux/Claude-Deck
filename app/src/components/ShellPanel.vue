@@ -90,7 +90,11 @@ function setOpen(open: boolean): void {
 function askClose(): void {
   deck.confirm.value = {
     message: 'Close this terminal? Anything running in it stops.',
-    yes: () => deck.closeShell(props.projectId),
+    yes: () => {
+      deck.closeShell(props.projectId);
+      // Hide the panel too: opening it again starts a new shell, using the current shell setting.
+      setOpen(false);
+    },
   };
 }
 

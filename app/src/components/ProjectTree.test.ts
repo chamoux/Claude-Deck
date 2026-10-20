@@ -239,6 +239,67 @@ describe('ProjectTree', () => {
     expect(row().classes()).toContain('text-deck-muted');
   });
 
+  it('the filter shows only projects whose name matches, ignoring case', async () => {
+    const { w } = build();
+    await w.get('[data-testid="project-filter"]').setValue('BET');
+    expect(w.find('[data-testid="project-p1"]').exists()).toBe(false);
+    expect(w.find('[data-testid="project-p2"]').exists()).toBe(true);
+    expect(w.find('[data-testid="no-match"]').exists()).toBe(false);
+  });
+
+  it('the filter says when nothing matches; Escape and the clear button reset it', async () => {
+    const { w } = build();
+    const input = w.get('[data-testid="project-filter"]');
+    await input.setValue('zzz');
+    expect(w.get('[data-testid="no-match"]').text()).toContain('zzz');
+    await input.trigger('keydown', { key: 'Escape' });
+    expect((input.element as HTMLInputElement).value).toBe('');
+    expect(w.find('[data-testid="project-p1"]').exists()).toBe(true);
+    await input.setValue('alp');
+    await w.get('[data-testid="clear-filter"]').trigger('click');
+    expect(w.find('[data-testid="project-p2"]').exists()).toBe(true);
+    expect(document.activeElement).toBe(input.element);
+  });
+
+  it('dragging a project onto the upper half of another moves it before that one', async () => {
+    const { w, t, deck } = build();
+    const drag = { types: ['application/x-deck-project'], setData: vi.fn(), dropEffect: '', effectAllowed: '' };
+    await w.get('[data-testid="project-p2"] > [data-nav]').trigger('dragstart', { dataTransfer: drag });
+    expect(drag.setData).toHaveBeenCalledWith('application/x-deck-project', 'p2');
+    expect(w.get('[data-testid="project-p2"] > [data-nav]').classes()).toContain('opacity-50');
+    const target = w.get('[data-testid="project-p1"]');
+    await target.trigger('dragover', { dataTransfer: drag, clientY: -1 });
+    expect(target.get('[data-testid="drop-line"]').classes()).toContain('-top-[2px]');
+    await target.trigger('drop', { dataTransfer: drag });
+    expect(t.sent).toEqual([{ type: 'move_project', project_id: 'p2', index: 0 }]);
+    expect(deck.projects.value.map((p) => p.id)).toEqual(['p2', 'p1']);
+    expect(w.find('[data-testid="drop-line"]').exists()).toBe(false);
+  });
+
+  it('dropping a project onto itself or ignoring a session drag changes nothing', async () => {
+    const { w, t } = build();
+    const p1 = w.get('[data-testid="project-p1"]');
+    await p1.trigger('dragover', { dataTransfer: { types: ['application/x-deck-session'] } });
+    expect(w.find('[data-testid="drop-line"]').exists()).toBe(false);
+    const drag = { types: ['application/x-deck-project'], setData: () => {}, dropEffect: '', effectAllowed: '' };
+    await p1.get('[data-nav]').trigger('dragstart', { dataTransfer: drag });
+    await p1.trigger('dragover', { dataTransfer: drag, clientY: 10 });
+    expect(w.find('[data-testid="drop-line"]').exists()).toBe(false);
+    await p1.trigger('drop', { dataTransfer: drag });
+    expect(t.sent).toEqual([]);
+  });
+
+  it('project menu: Move up / Move down reorder, disabled at the ends', async () => {
+    const { w, t } = build();
+    await w.get('[data-testid="project-p1"] [data-nav]').trigger('contextmenu');
+    expect(menuItem(w, 'Move up').attributes('disabled')).toBeDefined();
+    await menuItem(w, 'Move down').trigger('click');
+    expect(t.sent).toEqual([{ type: 'move_project', project_id: 'p1', index: 1 }]);
+    expect(w.findAll('[data-testid^="project-p"]').map((e) => e.attributes('data-testid'))).toEqual(['project-p2', 'project-p1']);
+    await w.get('[data-testid="project-p1"] [data-nav]').trigger('contextmenu');
+    expect(menuItem(w, 'Move down').attributes('disabled')).toBeDefined();
+  });
+
   it('the focused pane active session is the active row', async () => {
     const { w, deck } = build();
     deck.selectProject('p1');

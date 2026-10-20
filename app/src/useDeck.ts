@@ -36,6 +36,8 @@ import type {
   Target,
 } from './protocol';
 import type { Connection, Transport } from './transport';
+import { createUsage } from './usage';
+import type { Usage } from './usage';
 
 export interface TerminalSink {
   reset(): void;
@@ -58,6 +60,8 @@ export interface Deck {
   state: Ref<StateView | null>;
   connection: Ref<Connection>;
   memory: Ref<{ awake: number; bytes: number } | null>;
+  /** Claude plan usage, polled while the deck runs. */
+  usage: Usage;
   lastError: Ref<string | null>;
   /** The view shown in the middle area. */
   selected: Ref<ViewRef | null>;
@@ -125,6 +129,8 @@ export interface Deck {
   openPast(projectId: string, conversationId: string): void;
   addProject(path: string): void;
   removeProject(projectId: string): void;
+  /** Moves a project to `index` in the sidebar order: reorders at once, then saves. */
+  moveProject(projectId: string, index: number): void;
   setShellPanel(projectId: string, panel: ShellPanel): void;
   closeShell(projectId: string): void;
   setSettings(s: Settings): void;
@@ -160,6 +166,7 @@ export function createDeck(transport: Transport): Deck {
   const confirm = ref<null | { message: string; yes: () => void }>(null);
   const closeDialogOpen = ref(false);
   const reattachGeneration = ref(0);
+  const usage = createUsage(() => transport.usage());
 
   // Terminal plumbing (not reactive): index <-> target key, and sinks per target key.
   const keyByIndex = new Map<number, string>();
@@ -632,11 +639,13 @@ export function createDeck(transport: Transport): Deck {
       transport.onCloseRequested(requestClose),
     ];
     send({ type: 'hello', client: 'window' });
+    usage.start();
   }
 
   function stop(): void {
     unsubs.forEach((u) => u());
     unsubs = [];
+    usage.stop();
   }
 
   function selectProject(id: string): void {
@@ -719,6 +728,16 @@ export function createDeck(transport: Transport): Deck {
     send({ type: 'remove_project', project_id: projectId, force: false });
   }
 
+  function moveProject(projectId: string, index: number): void {
+    const list = state.value?.projects;
+    if (!list) return;
+    const from = list.findIndex((p) => p.id === projectId);
+    const to = Math.max(0, Math.min(index, list.length - 1));
+    if (from === -1 || from === to) return;
+    list.splice(to, 0, ...list.splice(from, 1));
+    send({ type: 'move_project', project_id: projectId, index: to });
+  }
+
   function requestClose(): void {
     if (busySessions.value.length === 0) void transport.close(false);
     else closeDialogOpen.value = true;
@@ -739,6 +758,7 @@ export function createDeck(transport: Transport): Deck {
     state,
     connection,
     memory,
+    usage,
     lastError,
     selected,
     selectedProjectId,
@@ -798,6 +818,7 @@ export function createDeck(transport: Transport): Deck {
       send({ type: 'open_past_session', project_id: projectId, conversation_id: conversationId }),
     addProject: (path) => send({ type: 'add_project', path }),
     removeProject,
+    moveProject,
     setShellPanel: (projectId, panel) => send({ type: 'set_shell_panel', project_id: projectId, panel }),
     closeShell: (projectId) => send({ type: 'close_shell', project_id: projectId }),
     setSettings: (settings) => send({ type: 'set_settings', settings }),

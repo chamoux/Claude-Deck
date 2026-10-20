@@ -1,6 +1,7 @@
 import { Channel, invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { Event, Request } from './protocol';
+import type { UsageReport } from './usage';
 
 export type Connection = 'connected' | 'reconnecting' | 'failed';
 
@@ -13,6 +14,8 @@ export interface Transport {
   onCloseRequested(cb: () => void): () => void;
   close(keepRunning: boolean): Promise<void>;
   attention(title: string, flash: boolean): Promise<void>;
+  /** Claude plan usage, read by the window process (not the helper). */
+  usage(): Promise<UsageReport>;
 }
 
 interface OutputChunk {
@@ -66,6 +69,7 @@ export function tauriTransport(): Transport {
     onCloseRequested: (cb) => listenSync<unknown>('deck:close-requested', () => cb()),
     close: (keepRunning) => invoke('deck_close', { keepRunning }),
     attention: (title, flash) => invoke('deck_attention', { title, flash }),
+    usage: () => invoke<UsageReport>('claude_usage'),
   };
 }
 
@@ -74,6 +78,9 @@ export interface FakeTransport extends Transport {
   inputs: { index: number; data: Uint8Array }[];
   closed: boolean[];
   attentions: { title: string; flash: boolean }[];
+  /** What `usage()` answers; `usageCalls` counts the calls. */
+  usageReport: UsageReport;
+  usageCalls: number;
   emit(e: Event): void;
   emitOutput(index: number, data: Uint8Array): void;
   emitConnection(s: Connection): void;
@@ -96,6 +103,8 @@ export function fakeTransport(): FakeTransport {
     inputs: [],
     closed: [],
     attentions: [],
+    usageReport: { status: 'signed_out' },
+    usageCalls: 0,
     send(req) {
       t.sent.push(req);
       return Promise.resolve();
@@ -115,6 +124,10 @@ export function fakeTransport(): FakeTransport {
     attention(title, flash) {
       t.attentions.push({ title, flash });
       return Promise.resolve();
+    },
+    usage() {
+      t.usageCalls++;
+      return Promise.resolve(t.usageReport);
     },
     emit: (e) => events.forEach((cb) => cb(e)),
     emitOutput: (index, data) => outputs.forEach((cb) => cb(index, data)),

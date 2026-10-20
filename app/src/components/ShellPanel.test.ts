@@ -93,13 +93,16 @@ describe('ShellPanel', () => {
     expect(w.find('[data-testid="shell-running"]').exists()).toBe(false);
   });
 
-  it('close asks to confirm, then sends CloseShell', async () => {
+  it('close asks to confirm, then sends CloseShell and hides the panel so opening it starts a new shell', async () => {
     const { t, w, deck } = setup();
     await w.find('[aria-label="Close terminal"]').trigger('click');
     expect(deck.confirm.value?.message).toBe('Close this terminal? Anything running in it stops.');
     expect(t.sent).toEqual([]);
     deck.confirmYes();
-    expect(t.sent).toEqual([{ type: 'close_shell', project_id: 'p1' }]);
+    expect(t.sent).toEqual([
+      { type: 'close_shell', project_id: 'p1' },
+      { type: 'set_shell_panel', project_id: 'p1', panel: { open: false, width: 500 } },
+    ]);
   });
 
   it('dragging clamps the width and sends one SetShellPanel after the debounce', async () => {

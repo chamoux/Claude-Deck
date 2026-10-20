@@ -1,4 +1,5 @@
 mod bridge;
+mod usage;
 
 use bridge::{Bridge, OutputChunk};
 use deck_proto::messages::{encode_request, Request};
@@ -58,6 +59,12 @@ fn deck_attention(title: String, flash: bool, window: Window) {
     }
 }
 
+/// Claude plan usage for the footer (see `usage`).
+#[tauri::command]
+async fn claude_usage() -> usage::UsageReport {
+    usage::fetch().await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -85,7 +92,8 @@ pub fn run() {
             deck_input,
             deck_subscribe,
             deck_close,
-            deck_attention
+            deck_attention,
+            claude_usage
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

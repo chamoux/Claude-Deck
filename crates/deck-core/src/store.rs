@@ -301,6 +301,19 @@ impl SavedState {
         Ok(())
     }
 
+    /// Moves a project to `index` in the sidebar order (clamped to the end).
+    pub fn move_project(&mut self, project_id: &str, index: usize) -> Result<(), LayoutError> {
+        let from = self
+            .projects
+            .iter()
+            .position(|p| p.id == project_id)
+            .ok_or(LayoutError::Unknown)?;
+        let p = self.projects.remove(from);
+        let to = index.min(self.projects.len());
+        self.projects.insert(to, p);
+        Ok(())
+    }
+
     pub fn project(&self, project_id: &str) -> Option<&Project> {
         self.projects.iter().find(|p| p.id == project_id)
     }
@@ -904,6 +917,22 @@ mod tests {
         let p = s.add_project(r"C:\Work\A").id.clone();
         assert_eq!(s.project(&p).unwrap().path, r"C:\Work\A");
         assert!(s.project("nope").is_none());
+    }
+
+    #[test]
+    fn move_project_reorders_and_clamps() {
+        let mut s = SavedState::default();
+        let a = s.add_project(r"C:\Work\A").id.clone();
+        let b = s.add_project(r"C:\Work\B").id.clone();
+        let c = s.add_project(r"C:\Work\C").id.clone();
+        let order = |s: &SavedState| s.projects.iter().map(|p| p.id.clone()).collect::<Vec<_>>();
+        s.move_project(&c, 0).unwrap();
+        assert_eq!(order(&s), [c.clone(), a.clone(), b.clone()]);
+        s.move_project(&c, 99).unwrap();
+        assert_eq!(order(&s), [a.clone(), b.clone(), c.clone()]);
+        s.move_project(&a, 1).unwrap();
+        assert_eq!(order(&s), [b, a, c]);
+        assert_eq!(s.move_project("nope", 0), Err(LayoutError::Unknown));
     }
 
     #[test]

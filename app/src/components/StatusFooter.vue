@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { Cpu, Settings, X } from 'lucide-vue-next';
 import { useDeck } from '../useDeck';
+import UsageMeters from './UsageMeters.vue';
 
 const emit = defineEmits<{ 'open-settings': [] }>();
 const deck = useDeck();
@@ -55,6 +56,7 @@ const helper = computed(() => {
         </button>
       </span>
     </span>
+    <UsageMeters />
     <button
       type="button"
       data-testid="open-settings"

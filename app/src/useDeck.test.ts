@@ -453,6 +453,17 @@ describe('useDeck views, layouts and groups', () => {
     expect(allTabs(deck.layoutOf({ kind: 'group', id: 'g2' }))).toEqual([s_('a')]);
   });
 
+  it('moveProject reorders at once, clamps the index and sends MoveProject', () => {
+    const { t, deck } = setup();
+    deck.moveProject('p1', 5);
+    expect(deck.projects.value.map((p) => p.id)).toEqual(['p2', 'p1']);
+    expect(t.sent).toEqual([{ type: 'move_project', project_id: 'p1', index: 1 }]);
+    t.sent.length = 0;
+    deck.moveProject('p1', 1);
+    deck.moveProject('nope', 0);
+    expect(t.sent).toEqual([]);
+  });
+
   it('renameGroup sends RenameGroup', () => {
     const { t, deck } = setupGroups([]);
     deck.renameGroup('g1', 'x');

@@ -128,6 +128,15 @@ export interface DemoTransport extends FakeTransport {
 
 export function createDemoTransport(): DemoTransport {
   const t = fakeTransport() as DemoTransport;
+  const inMs = (ms: number): string => new Date(Date.now() + ms).toISOString();
+  t.usageReport = {
+    status: 'ok',
+    limits: [
+      { kind: 'session', percent: 42, resets_at: inMs(2 * 3600_000 + 14 * 60_000), model: null },
+      { kind: 'weekly_all', percent: 83, resets_at: inMs(3 * 86400_000 + 17 * 3600_000), model: null },
+      { kind: 'weekly_scoped', percent: 12, resets_at: inMs(3 * 86400_000 + 17 * 3600_000), model: 'Sonnet' },
+    ],
+  };
   let state = demoState();
   let nextIndex = 1;
   let memTimer: ReturnType<typeof setInterval> | undefined;

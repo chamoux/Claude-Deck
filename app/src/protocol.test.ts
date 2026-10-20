@@ -29,6 +29,7 @@ describe('protocol wire format', () => {
     roundTrip('{"type":"add_group","name":"Billing"}', { type: 'add_group', name: 'Billing' } satisfies Request);
     roundTrip('{"type":"rename_group","group_id":"g","name":"x"}', { type: 'rename_group', group_id: 'g', name: 'x' } satisfies Request);
     roundTrip('{"type":"remove_group","group_id":"g"}', { type: 'remove_group', group_id: 'g' } satisfies Request);
+    roundTrip('{"type":"move_project","project_id":"p","index":1}', { type: 'move_project', project_id: 'p', index: 1 } satisfies Request);
   });
 
   it('accepts a new group with an empty layout and old projects without one', () => {

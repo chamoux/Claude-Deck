@@ -1,5 +1,20 @@
 <script setup lang="ts">
-import { ChevronRight, Folder, FolderOpen, FolderX, History, LayoutGrid, Moon, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronRight,
+  Folder,
+  FolderOpen,
+  FolderX,
+  History,
+  LayoutGrid,
+  Moon,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from 'lucide-vue-next';
 import { computed, reactive, ref } from 'vue';
 import { panes } from '../layout';
 import { pickAndAddProject } from '../pickFolder';
@@ -8,6 +23,8 @@ import ContextMenu from './ContextMenu.vue';
 import type { MenuItem } from './ContextMenu.vue';
 import GroupList from './GroupList.vue';
 import SessionRow from './SessionRow.vue';
+
+const PROJECT_MIME = 'application/x-deck-project';
 
 const emit = defineEmits<{ 'resume-past': [projectId: string] }>();
 
@@ -21,6 +38,25 @@ const menu = ref<MenuTarget | null>(null);
 
 const missing = computed(() => new Set(deck.state.value?.missing_folders ?? []));
 
+const query = ref('');
+const filterInput = ref<HTMLInputElement | null>(null);
+/** Projects whose name contains the filter text (any case). */
+const visibleProjects = computed(() => {
+  const q = query.value.trim().toLocaleLowerCase();
+  if (!q) return deck.projects.value;
+  return deck.projects.value.filter((p) => p.name.toLocaleLowerCase().includes(q));
+});
+
+function clearFilter(): void {
+  query.value = '';
+  filterInput.value?.focus();
+}
+
+function onFilterEscape(): void {
+  if (query.value) query.value = '';
+  else filterInput.value?.blur();
+}
+
 function openMenu(e: MouseEvent, kind: MenuTarget['kind'], id: string): void {
   menu.value = { x: e.clientX, y: e.clientY, kind, id };
 }
@@ -29,10 +65,13 @@ const menuItems = computed<MenuItem[]>(() => {
   const m = menu.value;
   if (!m) return [];
   if (m.kind === 'project') {
+    const i = deck.projects.value.findIndex((p) => p.id === m.id);
     return [
       { key: 'new', label: 'New Claude session', icon: Plus },
       { key: 'resume', label: 'Resume past session…', icon: History },
       { key: 'explorer', label: 'Open in File Explorer', icon: FolderOpen, separator: true },
+      { key: 'move-up', label: 'Move up', icon: ArrowUp, disabled: i <= 0, separator: true },
+      { key: 'move-down', label: 'Move down', icon: ArrowDown, disabled: i === deck.projects.value.length - 1 },
       { key: 'remove', label: 'Remove from list', icon: Trash2, danger: true, separator: true },
     ];
   }
@@ -70,6 +109,12 @@ async function onSelect(key: string): Promise<void> {
         const { openPath } = await import('@tauri-apps/plugin-opener');
         await openPath(path);
       }
+      break;
+    }
+    case 'move-up':
+    case 'move-down': {
+      const i = deck.projects.value.findIndex((p) => p.id === m.id);
+      deck.moveProject(m.id, i + (key === 'move-up' ? -1 : 1));
       break;
     }
     case 'remove':
@@ -115,6 +160,57 @@ function isProjectSelected(id: string): boolean {
   return s?.kind === 'project' && s.id === id;
 }
 
+// ---- Reorder by drag and drop --------------------------------------------------------------
+// dataTransfer is unreadable during dragover, so the dragged project is kept in `draggingId`.
+
+const draggingId = ref<string | null>(null);
+/** Where the dragged project would land: before or after this project. */
+const dropAt = ref<{ id: string; after: boolean } | null>(null);
+
+function onProjectDragStart(e: DragEvent, id: string): void {
+  if (!e.dataTransfer) return;
+  e.dataTransfer.setData(PROJECT_MIME, id);
+  e.dataTransfer.effectAllowed = 'move';
+  draggingId.value = id;
+}
+
+function endProjectDrag(): void {
+  draggingId.value = null;
+  dropAt.value = null;
+}
+
+function onProjectDragOver(e: DragEvent, id: string): void {
+  if (!draggingId.value || !Array.from(e.dataTransfer?.types ?? []).includes(PROJECT_MIME)) return;
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+  if (id === draggingId.value) {
+    dropAt.value = null;
+    return;
+  }
+  // Upper half of the project row: before it. Lower half, or over its sessions: after it.
+  const row = (e.currentTarget as HTMLElement).querySelector('[data-project-row]')?.getBoundingClientRect();
+  dropAt.value = { id, after: !row || e.clientY > row.top + row.height / 2 };
+}
+
+function onProjectDragLeave(e: DragEvent, id: string): void {
+  const li = e.currentTarget as HTMLElement;
+  if (dropAt.value?.id === id && !li.contains(e.relatedTarget as Node | null)) dropAt.value = null;
+}
+
+function onProjectDrop(e: DragEvent): void {
+  const id = draggingId.value;
+  const at = dropAt.value;
+  if (!id) return;
+  e.preventDefault();
+  endProjectDrag();
+  if (!at) return;
+  const ids = deck.projects.value.map((p) => p.id);
+  const from = ids.indexOf(id);
+  let to = ids.indexOf(at.id) + (at.after ? 1 : 0);
+  if (from < to) to--;
+  deck.moveProject(id, to);
+}
+
 function onKeydown(e: KeyboardEvent): void {
   if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
   const rows = Array.from(root.value?.querySelectorAll<HTMLElement>('[data-nav]') ?? []);
@@ -150,20 +246,78 @@ function onKeydown(e: KeyboardEvent): void {
       </button>
     </header>
 
+    <div v-if="deck.projects.value.length > 0" class="relative px-1.5 pb-1.5">
+      <Search
+        :size="14"
+        :stroke-width="1.75"
+        class="pointer-events-none absolute top-[calc(50%-3px)] left-4 -translate-y-1/2 text-deck-faint"
+        aria-hidden="true"
+      />
+      <input
+        ref="filterInput"
+        v-model="query"
+        type="text"
+        data-testid="project-filter"
+        aria-label="Filter projects by name"
+        placeholder="Filter projects"
+        spellcheck="false"
+        autocomplete="off"
+        class="h-7 w-full rounded-md border border-deck-border-strong bg-deck-bg pr-7 pl-7 font-sans text-[13px] text-deck-text transition-colors duration-150 placeholder:text-deck-faint focus:border-deck-accent focus:outline-none"
+        @keydown.esc.prevent="onFilterEscape"
+      />
+      <button
+        v-if="query"
+        type="button"
+        data-testid="clear-filter"
+        aria-label="Clear filter"
+        title="Clear filter"
+        class="absolute top-[calc(50%-3px)] right-2.5 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-deck-faint transition-colors duration-150 hover:text-deck-text focus:outline-none focus-visible:ring-2 focus-visible:ring-deck-accent"
+        @click="clearFilter"
+      >
+        <X :size="14" :stroke-width="1.75" aria-hidden="true" />
+      </button>
+    </div>
+
+    <p v-if="query.trim() && visibleProjects.length === 0" data-testid="no-match" class="px-3 pb-3 text-xs text-deck-faint">
+      No projects match “{{ query.trim() }}”
+    </p>
+
     <ul class="flex flex-col gap-0.5 px-1.5 pb-3">
-      <li v-for="p in deck.projects.value" :key="p.id" :data-testid="'project-' + p.id">
+      <li
+        v-for="p in visibleProjects"
+        :key="p.id"
+        :data-testid="'project-' + p.id"
+        class="relative"
+        @dragenter="onProjectDragOver($event, p.id)"
+        @dragover="onProjectDragOver($event, p.id)"
+        @dragleave="onProjectDragLeave($event, p.id)"
+        @drop="onProjectDrop"
+      >
+        <span
+          v-if="dropAt?.id === p.id"
+          data-testid="drop-line"
+          :class="[
+            'pointer-events-none absolute inset-x-1 z-10 h-0.5 rounded-full bg-deck-accent',
+            dropAt?.after ? '-bottom-[2px]' : '-top-[2px]',
+          ]"
+          aria-hidden="true"
+        />
         <button
           type="button"
           data-nav
+          data-project-row
+          draggable="true"
           :aria-expanded="!collapsed[p.id]"
           :title="p.path"
           :class="[
             'flex h-[30px] w-full cursor-pointer items-center gap-2 rounded-md px-2 text-left font-medium transition-colors duration-150 hover:bg-deck-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-deck-accent',
             isProjectSelected(p.id) ? 'text-deck-text' : 'text-deck-muted',
-            missing.has(p.id) ? 'opacity-50' : '',
+            missing.has(p.id) || draggingId === p.id ? 'opacity-50' : '',
           ]"
           @click="toggleProject(p.id)"
           @contextmenu.prevent="openMenu($event, 'project', p.id)"
+          @dragstart="onProjectDragStart($event, p.id)"
+          @dragend="endProjectDrag"
         >
           <ChevronRight
             :size="14"

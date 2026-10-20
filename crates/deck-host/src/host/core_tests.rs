@@ -2800,6 +2800,46 @@ fn add_group_saves_and_appears_in_state() {
 }
 
 #[test]
+fn move_project_saves_and_broadcasts_the_new_order() {
+    let mut e = env();
+    let other = tempfile::tempdir().unwrap();
+    req(
+        &mut e,
+        W,
+        Request::AddProject {
+            path: other.path().to_str().unwrap().into(),
+        },
+        0,
+    );
+    let pid = e.pid.clone();
+    let fx = req(
+        &mut e,
+        W,
+        Request::MoveProject {
+            project_id: pid.clone(),
+            index: 1,
+        },
+        1,
+    );
+    assert_eq!((saves(&fx), errors(&fx).len()), (1, 0));
+    let Some(Event::State { state }) = events(&fx).into_iter().next() else {
+        panic!()
+    };
+    assert_eq!(state.projects[1].id, pid);
+    let fx = req(
+        &mut e,
+        W,
+        Request::MoveProject {
+            project_id: "nope".into(),
+            index: 0,
+        },
+        2,
+    );
+    assert_eq!(errors(&fx), vec!["unknown id".to_string()]);
+    assert_eq!(saves(&fx), 0);
+}
+
+#[test]
 fn rename_set_layout_and_remove_group_each_save_and_broadcast() {
     let mut e = env();
     req(&mut e, W, Request::AddGroup { name: "A".into() }, 1);

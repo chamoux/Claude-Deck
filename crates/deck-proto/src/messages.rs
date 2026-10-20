@@ -46,6 +46,11 @@ pub enum Request {
     NewSession {
         project_id: String,
     },
+    /// Moves a project to `index` in the sidebar order (clamped to the end).
+    MoveProject {
+        project_id: String,
+        index: usize,
+    },
     Wake {
         deck_id: String,
     },
@@ -291,6 +296,10 @@ mod tests {
                 force: true,
             },
             Request::NewSession { project_id: s() },
+            Request::MoveProject {
+                project_id: s(),
+                index: 2,
+            },
             Request::Wake { deck_id: s() },
             Request::Sleep {
                 deck_id: s(),
@@ -384,6 +393,13 @@ mod tests {
                 project_id: "p".into(),
                 layout: None
             }
+        );
+        assert_eq!(
+            json_of(&Request::MoveProject {
+                project_id: "p".into(),
+                index: 1
+            }),
+            r#"{"type":"move_project","project_id":"p","index":1}"#
         );
     }
 

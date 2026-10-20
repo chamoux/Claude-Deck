@@ -64,6 +64,8 @@ export type Request =
   | { type: 'add_project'; path: string }
   | { type: 'remove_project'; project_id: string; force: boolean }
   | { type: 'new_session'; project_id: string }
+  /** Moves a project to `index` in the sidebar order (clamped to the end). */
+  | { type: 'move_project'; project_id: string; index: number }
   | { type: 'wake'; deck_id: string }
   | { type: 'sleep'; deck_id: string; force: boolean }
   | { type: 'close_session'; deck_id: string; force: boolean }

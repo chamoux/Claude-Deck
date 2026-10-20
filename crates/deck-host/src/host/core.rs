@@ -573,6 +573,10 @@ impl Core {
                 self.remove_project(client, &project_id, force, now, out)
             }
             Request::NewSession { project_id } => self.new_session(client, &project_id, now, out),
+            Request::MoveProject { project_id, index } => {
+                let r = self.state.move_project(&project_id, index);
+                self.layout_result(client, r, out);
+            }
             Request::Wake { deck_id } => self.wake(client, &deck_id, out),
             Request::Sleep { deck_id, force } => {
                 self.sleep_request(client, &deck_id, force, now, out)
